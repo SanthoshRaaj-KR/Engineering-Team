@@ -1,94 +1,123 @@
 #!/usr/bin/env python
-import sys
-import warnings
 
+import warnings
 from datetime import datetime
+
+from crewai import Crew, Process
 
 from engineering_team.crew import EngineeringTeam
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
-# This main file is intended to be a way for you to run your
-# crew locally, so refrain from adding unnecessary logic into this file.
-# Replace with inputs you want to test with, it will automatically
-# interpolate any tasks and agents information
 
 def run():
-    """
-    Run the crew.
-    """
-    inputs = {
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year)
-    }
 
-    try:
-        EngineeringTeam().crew().kickoff(inputs=inputs)
-    except Exception as e:
-        raise Exception(f"An error occurred while running the crew: {e}")
-
-
-def train():
-    """
-    Train the crew for a given number of iterations.
-    """
-    inputs = {
-        "topic": "AI LLMs",
-        'current_year': str(datetime.now().year)
-    }
-    try:
-        EngineeringTeam().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
-
-    except Exception as e:
-        raise Exception(f"An error occurred while training the crew: {e}")
-
-def replay():
-    """
-    Replay the crew execution from a specific task.
-    """
-    try:
-        EngineeringTeam().crew().replay(task_id=sys.argv[1])
-
-    except Exception as e:
-        raise Exception(f"An error occurred while replaying the crew: {e}")
-
-def test():
-    """
-    Test the crew execution and returns the results.
-    """
-    inputs = {
-        "topic": "AI LLMs",
-        "current_year": str(datetime.now().year)
-    }
-
-    try:
-        EngineeringTeam().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
-
-    except Exception as e:
-        raise Exception(f"An error occurred while testing the crew: {e}")
-
-def run_with_trigger():
-    """
-    Run the crew with trigger payload.
-    """
-    import json
-
-    if len(sys.argv) < 2:
-        raise Exception("No trigger payload provided. Please provide JSON payload as argument.")
-
-    try:
-        trigger_payload = json.loads(sys.argv[1])
-    except json.JSONDecodeError:
-        raise Exception("Invalid JSON payload provided as argument")
+    team = EngineeringTeam()
 
     inputs = {
-        "crewai_trigger_payload": trigger_payload,
-        "topic": "",
-        "current_year": ""
+        "user_query": input("Enter your requirement: "),
+        "current_year": str(datetime.now().year),
     }
 
-    try:
-        result = EngineeringTeam().crew().kickoff(inputs=inputs)
-        return result
-    except Exception as e:
-        raise Exception(f"An error occurred while running the crew with trigger: {e}")
+    # ----------------------------------------------------
+    # Step 1 : Product Requirement Analysis
+    # ----------------------------------------------------
+
+    print("\n========== PRODUCT MANAGER ==========\n")
+
+    prs_result = Crew(
+        agents=[team.product_manager()],
+        tasks=[team.product_requirement_analysis()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(inputs=inputs)
+
+    # ----------------------------------------------------
+    # Step 2 : AI Assessment
+    # ----------------------------------------------------
+
+    print("\n========== AI ENGINEER ==========\n")
+
+    ai_result = Crew(
+        agents=[team.ai_engineer()],
+        tasks=[team.ai_assessment()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(
+        inputs={
+            "product_specification": prs_result.pydantic
+        }
+    )
+
+    # ----------------------------------------------------
+    # Step 3 : Engineering Planning
+    # ----------------------------------------------------
+
+    print("\n========== ENGINEERING MANAGER ==========\n")
+
+    engineering_plan = Crew(
+        agents=[team.engineering_manager()],
+        tasks=[team.engineering_planning()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(
+        inputs={
+            "product_specification": prs_result.pydantic,
+            "ai_assessment": ai_result.pydantic,
+        }
+    )
+
+    # ----------------------------------------------------
+    # Step 4 : Innovation
+    # ----------------------------------------------------
+
+    print("\n========== INNOVATION ENGINEER ==========\n")
+
+    innovation_report = Crew(
+        agents=[team.innovation_engineer()],
+        tasks=[team.innovation_research()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(
+        inputs={
+            "engineering_plan": engineering_plan.pydantic
+        }
+    )
+
+    # ----------------------------------------------------
+    # Step 5 : Implementation
+    # ----------------------------------------------------
+
+    print("\n========== SENIOR SOFTWARE ENGINEER ==========\n")
+
+    implementation = Crew(
+        agents=[team.senior_software_engineer()],
+        tasks=[team.implementation()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(
+        inputs={
+            "engineering_plan": engineering_plan.pydantic,
+            "innovation_report": innovation_report.pydantic,
+        }
+    )
+
+    # ----------------------------------------------------
+    # Step 6 : QA
+    # ----------------------------------------------------
+
+    print("\n========== QA ==========\n")
+
+    qa_report = Crew(
+        agents=[team.qa_engineer()],
+        tasks=[team.qa_review()],
+        process=Process.sequential,
+        verbose=True,
+    ).kickoff(
+        inputs={
+            "implementation": implementation.pydantic
+        }
+    )
+
+    print("\n========== FINAL RESULT ==========\n")
+    print(qa_report)

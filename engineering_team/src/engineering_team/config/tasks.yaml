@@ -19,3 +19,111 @@ product_requirement_analysis:
   agent: product_manager
 
   output_json: ProductRequirementSpecification
+
+engineering_planning:
+  description: >
+    Convert the provided Product Requirement Specification (PRS) into a
+    structured Engineering Execution Plan.
+
+    Analyze the product requirements and identify the technical work required
+    to successfully build the product. Break the work into logical engineering
+    tasks, identify dependencies, estimate implementation complexity, and
+    determine which specialists are required.
+
+    If the project contains AI-related capabilities, include the AI Engineer's
+    recommendations while planning.
+
+    Do not write implementation code. Focus only on planning the engineering
+    execution.
+
+  expected_output: >
+    A valid EngineeringExecutionPlan object.
+
+  agent: engineering_manager
+
+  output_json: EngineeringExecutionPlan
+
+ai_assessment:
+  description: >
+    Analyze the provided Product Requirement Specification (PRS) and determine
+    whether Artificial Intelligence should be incorporated into the product.
+
+    Evaluate whether AI provides meaningful value to the user and identify
+    practical AI opportunities only when they are justified.
+
+    If AI is not required, clearly explain why traditional software is a
+    better solution.
+
+    Follow the AI Evaluation Guidelines provided in the context document.
+
+  expected_output: >
+    A valid AIAssessment object.
+
+  agent: ai_engineer
+
+  output_json: AIAssessment
+
+implementation:
+  description: >
+    Implement the assigned Engineering Execution Plan and deliver a complete,
+    production-ready solution.
+
+    Own the complete technical implementation, including architecture,
+    business logic, APIs, database interactions, security, performance,
+    scalability, and maintainability.
+
+    Review the recommendations provided by the Innovation Engineer and
+    incorporate them whenever they provide measurable improvements to the
+    solution. Use engineering judgment to decide which recommendations are
+    suitable for production.
+
+    When repetitive or supporting work is required, delegate appropriate
+    tasks to the General Engineering Intern. Typical delegation includes
+    generating boilerplate code, Dockerfiles, configuration files,
+    documentation, project scaffolding, logging setup, utility scripts,
+    test scaffolding, and similar supporting work.
+
+    Review every contribution returned by the Intern before integrating it
+    into the implementation. You remain fully responsible for the final code
+    quality and correctness.
+
+    If the Engineering Execution Plan contains AI-related implementation
+    requirements, integrate them according to the AI recommendations.
+
+    Deliver clean, modular, maintainable, well-documented, and production-ready
+    code that completely satisfies the assigned engineering tasks.
+
+  expected_output: >
+    A complete production-ready implementation with all assigned features
+    implemented and integrated.
+
+  agent: senior_software_engineer
+
+
+innovation_research:
+  description: >
+    Analyze the assigned Engineering Execution Plan and identify modern
+    technologies, frameworks, libraries, SDKs, APIs, developer tools,
+    open-source projects, and implementation techniques that could improve
+    the solution.
+
+    Research multiple approaches where appropriate and evaluate their
+    advantages, disadvantages, production readiness, community adoption,
+    maintainability, and performance characteristics.
+
+    Recommend practical improvements that simplify implementation, improve
+    developer productivity, enhance performance, or reduce technical debt.
+
+    Your responsibility is to assist the Senior Software Engineer by providing
+    well-researched technical recommendations. You do not implement the
+    solution or make the final engineering decisions.
+
+    Present your findings clearly so they can be incorporated into the final
+    implementation where appropriate.
+
+  expected_output: >
+    A structured Innovation Report containing technology recommendations,
+    implementation ideas, alternative approaches, trade-offs, production
+    readiness, and supporting rationale.
+
+  agent: innovation_engineer

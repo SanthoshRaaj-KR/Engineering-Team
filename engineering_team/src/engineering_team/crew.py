@@ -1,46 +1,118 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
+from crewai import Agent, Task
+from crewai.project import CrewBase, agent, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
+
 from models.product import ProductRequirementSpecification
-# If you want to run a snippet of code before or after the crew starts,
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from models.ai import AIAssessment
+from models.engineering import EngineeringExecutionPlan
+from models.innovation import InnovationReport
+from models.implementation import ImplementationReport
+from models.qa import QAReport
+
 
 @CrewBase
-class EngineeringTeam():
-    """EngineeringTeam crew"""
+class EngineeringTeam:
+    """Engineering Team"""
 
     agents: list[BaseAgent]
     tasks: list[Task]
 
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
-    
-    # If you would like to add tools to your agents, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
+    # ------------------------------------------------------------------
+    # Agents
+    # ------------------------------------------------------------------
+
     @agent
-    def researcher(self) -> Agent:
+    def product_manager(self) -> Agent:
         return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
-            verbose=True
+            config=self.agents_config["product_manager"],
+            verbose=True,
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def engineering_manager(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
-            verbose=True
+            config=self.agents_config["engineering_manager"],
+            verbose=True,
         )
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
+    @agent
+    def ai_engineer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["ai_engineer"],
+            verbose=True,
+        )
+
+    @agent
+    def innovation_engineer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["innovation_engineer"],
+            verbose=True,
+        )
+
+    @agent
+    def senior_software_engineer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["senior_software_engineer"],
+            verbose=True,
+        )
+
+    @agent
+    def qa_engineer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["qa_engineer"],
+            verbose=True,
+        )
+
+    # ------------------------------------------------------------------
+    # Tasks
+    # ------------------------------------------------------------------
+
     @task
     def product_requirement_analysis(self) -> Task:
         return Task(
             config=self.tasks_config["product_requirement_analysis"],
+            agent=self.product_manager(),
             output_json=ProductRequirementSpecification,
+        )
+
+    @task
+    def ai_assessment(self) -> Task:
+        return Task(
+            config=self.tasks_config["ai_assessment"],
+            agent=self.ai_engineer(),
+            output_json=AIAssessment,
+        )
+
+    @task
+    def engineering_planning(self) -> Task:
+        return Task(
+            config=self.tasks_config["engineering_planning"],
+            agent=self.engineering_manager(),
+            output_json=EngineeringExecutionPlan,
+        )
+
+    @task
+    def innovation_research(self) -> Task:
+        return Task(
+            config=self.tasks_config["innovation_research"],
+            agent=self.innovation_engineer(),
+            output_json=InnovationReport,
+        )
+
+    @task
+    def implementation(self) -> Task:
+        return Task(
+            config=self.tasks_config["implementation"],
+            agent=self.senior_software_engineer(),
+            output_json=ImplementationReport,
+        )
+
+    @task
+    def qa_review(self) -> Task:
+        return Task(
+            config=self.tasks_config["qa_review"],
+            agent=self.qa_engineer(),
+            output_json=QAReport,
         )
 
     @crew
