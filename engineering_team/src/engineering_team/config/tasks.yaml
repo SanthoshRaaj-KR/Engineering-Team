@@ -3,45 +3,27 @@ product_requirement_analysis:
     Analyze the user's request and create a complete Product Requirement
     Specification.
 
+    User request: {user_query}
+
     Clearly identify the problem being solved, the intended outcome,
     functional requirements, constraints, assumptions, scope, success
     criteria, and deliverables.
 
+    Size the specification to the request. Do not invent requirements the user
+    did not ask for, and do not expand a small request into a large product.
+    Anything you are tempted to add that the user did not ask for belongs in
+    out_of_scope, not in the requirements.
+
     Focus only on defining the product requirements. Do not make engineering,
     implementation, architecture, framework, or AI decisions.
 
-    If information is missing, include it in the open_questions field instead
-    of making unsupported assumptions.
+    If information is missing, record it in open_questions and continue with the
+    most reasonable interpretation instead of blocking the team.
 
   expected_output: >
     A valid ProductRequirementSpecification object.
 
   agent: product_manager
-
-  output_json: ProductRequirementSpecification
-
-engineering_planning:
-  description: >
-    Convert the provided Product Requirement Specification (PRS) into a
-    structured Engineering Execution Plan.
-
-    Analyze the product requirements and identify the technical work required
-    to successfully build the product. Break the work into logical engineering
-    tasks, identify dependencies, estimate implementation complexity, and
-    determine which specialists are required.
-
-    If the project contains AI-related capabilities, include the AI Engineer's
-    recommendations while planning.
-
-    Do not write implementation code. Focus only on planning the engineering
-    execution.
-
-  expected_output: >
-    A valid EngineeringExecutionPlan object.
-
-  agent: engineering_manager
-
-  output_json: EngineeringExecutionPlan
 
 ai_assessment:
   description: >
@@ -51,79 +33,234 @@ ai_assessment:
     Evaluate whether AI provides meaningful value to the user and identify
     practical AI opportunities only when they are justified.
 
-    If AI is not required, clearly explain why traditional software is a
-    better solution.
+    Default to ai_required = false. Only set it to true when the requirements
+    genuinely need open-ended natural language understanding, content
+    generation, or ambiguity that deterministic rules cannot express. Text
+    parsing, counting, validation, arithmetic and formatting are not AI
+    problems.
 
-    Follow the AI Evaluation Guidelines provided in the context document.
+    If AI is not required, clearly explain why traditional software is a better
+    solution, and return an empty recommendations list.
 
   expected_output: >
     A valid AIAssessment object.
 
   agent: ai_engineer
+  context:
+    - product_requirement_analysis
 
-  output_json: AIAssessment
-
-implementation:
+engineering_planning:
   description: >
-    Implement the assigned Engineering Execution Plan and deliver a complete,
-    production-ready solution.
+    Convert the Product Requirement Specification and the AI Assessment into a
+    structured Engineering Execution Plan.
 
-    Own the complete technical implementation, including architecture,
-    business logic, APIs, database interactions, security, performance,
-    scalability, and maintainability.
+    Identify the technical work required to build the product, break it into
+    logical engineering tasks, identify dependencies, and set the priority of
+    each task.
 
-    Review the recommendations provided by the Innovation Engineer and
-    incorporate them whenever they provide measurable improvements to the
-    solution. Use engineering judgment to decide which recommendations are
-    suitable for production.
+    Decide the concrete file structure the team will create inside the sandbox
+    directory, and name the target file in the description of every task. Each
+    engineering task must state which file or files it produces. Prefer short,
+    conventional, lowercase file names such as analyzer.py, cli.py, main.py,
+    test_analyzer.py and README.md.
 
-    When repetitive or supporting work is required, delegate appropriate
-    tasks to the General Engineering Intern. Typical delegation includes
-    generating boilerplate code, Dockerfiles, configuration files,
-    documentation, project scaffolding, logging setup, utility scripts,
-    test scaffolding, and similar supporting work.
+    Assign each task to exactly one engineer:
+      • "Senior Software Engineer" for core logic, entrypoints and integration.
+      • "Innovation Engineer" for tests, helper utilities, configuration files,
+        requirements files and documentation.
+      • "QA Engineer" only for verification work.
 
-    Review every contribution returned by the Intern before integrating it
-    into the implementation. You remain fully responsible for the final code
-    quality and correctness.
+    Match the architecture to the problem. Only introduce a web framework, a
+    database, a container, an async runtime or a background worker if the
+    functional requirements genuinely demand it. For a small script, the correct
+    plan is a small number of plain Python modules and the standard library.
 
-    If the Engineering Execution Plan contains AI-related implementation
-    requirements, integrate them according to the AI recommendations.
+    Set ai_required from the AI Assessment rather than deciding it yourself.
 
-    Deliver clean, modular, maintainable, well-documented, and production-ready
-    code that completely satisfies the assigned engineering tasks.
+    Do not write implementation code. Focus only on planning the engineering
+    execution.
 
   expected_output: >
-    A complete production-ready implementation with all assigned features
-    implemented and integrated.
+    A valid EngineeringExecutionPlan object.
 
-  agent: senior_software_engineer
-
+  agent: engineering_manager
+  context:
+    - product_requirement_analysis
+    - ai_assessment
 
 innovation_research:
   description: >
-    Analyze the assigned Engineering Execution Plan and identify modern
-    technologies, frameworks, libraries, SDKs, APIs, developer tools,
-    open-source projects, and implementation techniques that could improve
-    the solution.
+    Review the Engineering Execution Plan and recommend technologies,
+    libraries, tools or techniques that would genuinely improve this specific
+    project.
 
-    Research multiple approaches where appropriate and evaluate their
-    advantages, disadvantages, production readiness, community adoption,
-    maintainability, and performance characteristics.
+    Calibrate every recommendation to the actual size and nature of the project
+    described in the plan. A small script does not benefit from a web framework,
+    a container runtime, a database, a message queue or an orchestration layer,
+    and recommending them is a failure of judgement rather than a display of
+    knowledge.
 
-    Recommend practical improvements that simplify implementation, improve
-    developer productivity, enhance performance, or reduce technical debt.
+    You have no internet access. Base your recommendations on what you actually
+    know, and never invent version numbers, benchmarks, download counts or
+    adoption statistics. If you are not confident about a detail, leave it out.
 
-    Your responsibility is to assist the Senior Software Engineer by providing
-    well-researched technical recommendations. You do not implement the
-    solution or make the final engineering decisions.
+    Return only recommendations you would genuinely defend in a code review.
+    Returning two solid recommendations, or an empty list with an explanation
+    that the standard library is sufficient, is a better outcome than a long
+    list that inflates the scope.
 
-    Present your findings clearly so they can be incorporated into the final
-    implementation where appropriate.
+    Your recommendations are advice for the Senior Software Engineer, who
+    decides whether to adopt them. You do not implement the core solution here.
 
   expected_output: >
-    A structured Innovation Report containing technology recommendations,
-    implementation ideas, alternative approaches, trade-offs, production
-    readiness, and supporting rationale.
+    A valid InnovationReport object.
 
   agent: innovation_engineer
+  context:
+    - engineering_planning
+
+implementation:
+  description: >
+    Write the actual working code for this project into the sandbox directory.
+
+    This task is not complete until real files exist in the sandbox and they
+    run. A written description of an implementation is not an implementation.
+
+    Work through these steps:
+
+      1. Call "List Sandbox Files" to see what already exists.
+      2. Identify every task in the Engineering Execution Plan assigned to the
+         "Senior Software Engineer", and the file each one produces.
+      3. Write each file with its own "Write Sandbox File" call, using the file
+         names from the plan. One module per file. Pass the complete final
+         contents of the file every time - no diffs, no fragments, no
+         "# rest of the code unchanged" placeholders.
+      4. Call "Run Python File" on the entrypoint, and on any other module you
+         can execute directly, to prove the code works. If it raises, read the
+         traceback, rewrite the file and run it again. Repeat until it runs
+         cleanly.
+      5. Only then produce your report.
+
+    Requirements for the code you write:
+
+      • Every function and class has a real body. No TODOs, no stubs, no
+        ellipses, no pseudocode.
+      • Prefer the standard library. Add a third-party dependency only when the
+         plan calls for it and the requirements genuinely need it.
+      • Keep servers, interactive prompts and other blocking behaviour inside an
+        "if __name__ == '__main__'" block so that verification does not hang.
+      • Handle the error cases the Product Requirement Specification describes.
+
+    Consider the Innovation Engineer's recommendations and adopt only those that
+    measurably improve this implementation. Rejecting all of them is a valid
+    outcome; note what you rejected and why in your implementation notes.
+
+    If the Engineering Execution Plan marks AI as required, integrate it
+    according to the AI Assessment. If it does not, write ordinary
+    deterministic code and do not add an AI dependency.
+
+    Do not write tests, README files or configuration in this task - the
+    Innovation Engineer owns those and will add them next.
+
+    Your report must list only files you genuinely created or modified through
+    the tools. Do not list a file you did not write.
+
+  expected_output: >
+    A valid ImplementationReport object whose files_created and files_modified
+    fields exactly match the files actually written to the sandbox.
+
+  agent: senior_software_engineer
+  context:
+    - engineering_planning
+    - ai_assessment
+    - innovation_research
+
+support_implementation:
+  description: >
+    Write the supporting code that surrounds the core implementation: tests,
+    helper utilities, configuration files, a requirements file where one is
+    needed, and the README.
+
+    This task is not complete until those files exist in the sandbox and the
+    tests have been executed.
+
+    Work through these steps:
+
+      1. Call "List Sandbox Files", then "Read Sandbox File" on every source
+         file the Senior Software Engineer produced. Read the code before you
+         write anything.
+      2. Identify every task in the Engineering Execution Plan assigned to the
+         "Innovation Engineer", and the file each one produces.
+      3. Write tests in files named test_*.py that import the real modules and
+         call the real functions, with the exact names and signatures that exist
+         in the code you just read. Never write a test against a function you
+         have not confirmed exists. Cover the normal path, the edge cases, and
+         the error handling described in the requirements.
+      4. Write any remaining supporting files the plan assigns to you - README,
+         configuration, requirements, small utilities.
+      5. Call "Run Sandbox Tests" and keep working until the tests pass. If
+         pytest is unavailable, verify your tests with "Run Python File"
+         instead.
+      6. If a test fails because the core implementation is genuinely wrong, do
+         not weaken the test to force it green. Leave the failing case in place
+         and describe the defect clearly in your implementation notes so QA
+         picks it up.
+
+    Do not rewrite, refactor or "improve" the Senior Software Engineer's core
+    modules. That code is theirs. Add your files alongside it.
+
+    Your report must list only files you genuinely created or modified through
+    the tools.
+
+  expected_output: >
+    A valid ImplementationReport object describing the supporting files you
+    actually wrote and the result of the test run.
+
+  agent: innovation_engineer
+  context:
+    - engineering_planning
+    - implementation
+
+qa_review:
+  description: >
+    Verify the code that actually exists in the sandbox against the original
+    Product Requirement Specification.
+
+    Do not trust the Implementation Reports. They are claims to be checked, not
+    evidence. Begin your review with the tools:
+
+      1. Call "List Sandbox Files" to establish which files really exist.
+      2. Compare that list against the files the engineers claimed to create.
+         Any claimed file that does not exist is a Critical issue and the review
+         fails.
+      3. Call "Read Sandbox File" on every source file that matters and read the
+         real implementation.
+      4. Call "Run Python File" on the entrypoint to confirm the code executes,
+         and "Run Sandbox Tests" to confirm the test suite passes.
+
+    Then assess:
+
+      • Does the implementation satisfy each functional requirement in the PRS?
+      • Does it handle the edge cases and error conditions the PRS describes?
+      • Are there stubs, TODOs, placeholders or functions with no real body?
+      • Did the code run without errors? Did the tests pass?
+      • Is the solution proportionate to the requirements, or does it carry
+        dependencies and structure the requirements never justified?
+
+    Severity guidance: a missing file, code that does not run, or an unmet
+    functional requirement is Critical. Failing tests, stubbed functions and
+    unhandled error cases described in the PRS are High. Set passed = true only
+    when the code runs, the tests pass, and every functional requirement is met.
+
+    Cite the file name and the observed output for every issue you report.
+
+    You have no write access. Report defects; do not attempt to fix them.
+
+  expected_output: >
+    A valid QAReport object grounded in the files you actually read and ran.
+
+  agent: qa_engineer
+  context:
+    - product_requirement_analysis
+    - implementation
+    - support_implementation

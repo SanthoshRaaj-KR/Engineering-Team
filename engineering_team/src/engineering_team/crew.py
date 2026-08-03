@@ -1,13 +1,14 @@
-from crewai import Agent, Task
-from crewai.project import CrewBase, agent, task
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 
-from models.product import ProductRequirementSpecification
-from models.ai import AIAssessment
-from models.engineering import EngineeringExecutionPlan
-from models.innovation import InnovationReport
-from models.implementation import ImplementationReport
-from models.qa import QAReport
+from .models.product import ProductRequirementSpecification
+from .models.ai import AIAssessment
+from .models.engineering import EngineeringExecutionPlan
+from .models.innovation import InnovationReport
+from .models.implementation import ImplementationReport
+from .models.qa import QAReport
+from .tools.sandbox_tools import sandbox_engineer_tools, sandbox_qa_tools
 
 
 @CrewBase
@@ -44,9 +45,12 @@ class EngineeringTeam:
 
     @agent
     def innovation_engineer(self) -> Agent:
+        # No agent-level tools: the research task is analysis only. The sandbox
+        # tools are attached to the support_implementation task instead.
         return Agent(
             config=self.agents_config["innovation_engineer"],
             verbose=True,
+            max_iter=40,
         )
 
     @agent
@@ -54,6 +58,8 @@ class EngineeringTeam:
         return Agent(
             config=self.agents_config["senior_software_engineer"],
             verbose=True,
+            tools=sandbox_engineer_tools,
+            max_iter=40,
         )
 
     @agent
@@ -61,10 +67,15 @@ class EngineeringTeam:
         return Agent(
             config=self.agents_config["qa_engineer"],
             verbose=True,
+            tools=sandbox_qa_tools,
+            max_iter=40,
         )
 
     # ------------------------------------------------------------------
     # Tasks
+    #
+    # In a sequential process the execution order is the order these methods
+    # are defined in this class, not the order they appear in tasks.yaml.
     # ------------------------------------------------------------------
 
     @task
@@ -104,6 +115,16 @@ class EngineeringTeam:
         return Task(
             config=self.tasks_config["implementation"],
             agent=self.senior_software_engineer(),
+            tools=sandbox_engineer_tools,
+            output_json=ImplementationReport,
+        )
+
+    @task
+    def support_implementation(self) -> Task:
+        return Task(
+            config=self.tasks_config["support_implementation"],
+            agent=self.innovation_engineer(),
+            tools=sandbox_engineer_tools,
             output_json=ImplementationReport,
         )
 
@@ -112,6 +133,7 @@ class EngineeringTeam:
         return Task(
             config=self.tasks_config["qa_review"],
             agent=self.qa_engineer(),
+            tools=sandbox_qa_tools,
             output_json=QAReport,
         )
 
