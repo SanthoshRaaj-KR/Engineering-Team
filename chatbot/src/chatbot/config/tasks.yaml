@@ -1,0 +1,13 @@
+chat_task:
+  description: >
+    Respond to the user's latest message: "{user_message}"
+
+    Before answering, recall any relevant facts about this user from your
+    memory of earlier turns in this conversation (e.g. their name, stated
+    preferences, or things they previously told you) and weave them into
+    your reply naturally if relevant. Only use facts that were actually
+    said earlier - do not fabricate memories.
+  expected_output: >
+    A concise, natural conversational reply to the user's message,
+    incorporating relevant remembered context when applicable.
+  agent: assistant

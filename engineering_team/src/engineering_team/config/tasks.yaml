@@ -1,0 +1,21 @@
+product_requirement_analysis:
+  description: >
+    Analyze the user's request and create a complete Product Requirement
+    Specification.
+
+    Clearly identify the problem being solved, the intended outcome,
+    functional requirements, constraints, assumptions, scope, success
+    criteria, and deliverables.
+
+    Focus only on defining the product requirements. Do not make engineering,
+    implementation, architecture, framework, or AI decisions.
+
+    If information is missing, include it in the open_questions field instead
+    of making unsupported assumptions.
+
+  expected_output: >
+    A valid ProductRequirementSpecification object.
+
+  agent: product_manager
+
+  output_json: ProductRequirementSpecification
