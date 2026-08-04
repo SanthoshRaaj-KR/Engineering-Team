@@ -80,11 +80,17 @@ def write_sandbox_file(filename: str, content: str) -> str:
 
 
 @tool("Run Python File")
-def run_python_file(filename: str) -> str:
+def run_python_file(filename: str, stdin_text: str = "") -> str:
     """Execute a Python file from the sandbox with the current interpreter and
     return its exit code, stdout and stderr. Use this to prove that the code you
-    wrote actually imports and runs. A non-zero exit code means the code is
-    broken and you must fix it before reporting the work as done."""
+    wrote actually runs. A non-zero exit code means the code is broken and you
+    must fix it before reporting the work as done.
+
+    For an interactive program that reads with input(), pass the keystrokes you
+    want to feed it as stdin_text, with one entry per line, for example
+    "hello world\nquit\n". If you leave stdin_text empty the program sees
+    end-of-input immediately, so a well written input() loop should exit
+    cleanly rather than hang."""
     try:
         path = _resolve(filename)
     except ValueError as exc:
@@ -95,17 +101,52 @@ def run_python_file(filename: str) -> str:
         completed = subprocess.run(
             [sys.executable, str(path)],
             cwd=SANDBOX_DIR,
+            input=stdin_text,
             capture_output=True,
             text=True,
             timeout=RUN_TIMEOUT_SECONDS,
         )
     except subprocess.TimeoutExpired:
         return (
-            f"Running {filename} timed out after {RUN_TIMEOUT_SECONDS} seconds. "
-            "The file probably blocks on input or starts a long-running server; "
-            "guard that behaviour behind a __main__ block or a separate entrypoint."
+            f"Running {filename} timed out after {RUN_TIMEOUT_SECONDS} seconds "
+            "even though it was given end-of-input. The file loops forever, "
+            "sleeps, or starts a long-running server. Make sure any input() loop "
+            "catches EOFError and breaks, and keep blocking behaviour inside an "
+            "'if __name__ == \"__main__\"' block so the module can still be "
+            "imported. You can also verify it with Check Python Imports instead."
         )
     return _format_result(f"Ran python {filename}", completed)
+
+
+@tool("Check Python Imports")
+def check_python_imports(filename: str) -> str:
+    """Import a Python file from the sandbox without running its
+    'if __name__ == "__main__"' block, and report whether the import succeeded.
+    Use this to verify a module that starts a server or an interactive loop,
+    where actually running the file is not a useful test. An ImportError,
+    SyntaxError or NameError here means the file is broken."""
+    try:
+        path = _resolve(filename)
+    except ValueError as exc:
+        return str(exc)
+    if not path.is_file():
+        return f"No such file in the sandbox: {filename}"
+    module = path.relative_to(SANDBOX_DIR.resolve()).with_suffix("").as_posix().replace("/", ".")
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", f"import {module}; print('imported {module} successfully')"],
+            cwd=SANDBOX_DIR,
+            input="",
+            capture_output=True,
+            text=True,
+            timeout=RUN_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return (
+            f"Importing {module} timed out. The file runs blocking code at module "
+            "level; move it inside an 'if __name__ == \"__main__\"' block."
+        )
+    return _format_result(f"Imported {module}", completed)
 
 
 @tool("Run Sandbox Tests")
@@ -141,6 +182,7 @@ sandbox_engineer_tools = [
     read_sandbox_file,
     write_sandbox_file,
     run_python_file,
+    check_python_imports,
     run_sandbox_tests,
 ]
 
@@ -149,6 +191,7 @@ sandbox_qa_tools = [
     list_sandbox_files,
     read_sandbox_file,
     run_python_file,
+    check_python_imports,
     run_sandbox_tests,
 ]
 
